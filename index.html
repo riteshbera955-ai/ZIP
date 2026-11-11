@@ -1,8 +1,12 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ZIP Duplicate Checker</title><style>
+
+<title>ZIP Duplicate Checker</title>
+
+<style>
 * {
     box-sizing: border-box;
 }
@@ -30,7 +34,7 @@ body {
 }
 
 h1 {
-    font-size: 38px;
+    font-size: 36px;
     margin: 0 0 22px;
 }
 
@@ -38,15 +42,15 @@ h1 {
     color: #a8bad2;
     font-size: 19px;
     line-height: 1.6;
-    margin-bottom: 45px;
+    margin-bottom: 40px;
 }
 
 .upload-box {
     border: 3px dashed #405b7c;
     border-radius: 22px;
-    padding: 55px 15px;
+    padding: 50px 15px;
     cursor: pointer;
-    margin-bottom: 30px;
+    margin-bottom: 28px;
 }
 
 .folder {
@@ -63,7 +67,7 @@ h1 {
 .upload-info {
     color: #a8bad2;
     font-size: 18px;
-    line-height: 1.7;
+    line-height: 1.8;
 }
 
 #fileInput {
@@ -81,7 +85,7 @@ button {
     width: 100%;
     border: none;
     border-radius: 15px;
-    padding: 23px 12px;
+    padding: 22px 12px;
     background: #0799dc;
     color: white;
     font-size: 21px;
@@ -100,6 +104,7 @@ button:disabled {
     margin-top: 25px;
     border-radius: 13px;
     font-size: 17px;
+    line-height: 1.6;
     overflow-wrap: anywhere;
 }
 
@@ -163,69 +168,80 @@ button:disabled {
     background: #00c8ff;
     transition: width 0.3s;
 }
-</style></head><body><div class="container"><h1>📦 ZIP Duplicate Checker</h1>
+</style>
+</head>
 
-<div class="subtitle">
-    Upload your ZIP file and automatically remove
-    files that have already been uploaded before.
+<body>
+
+<div class="container">
+
+    <h1>📦 ZIP Duplicate Checker</h1>
+
+    <div class="subtitle">
+        Upload your ZIP file and automatically remove
+        files that have already been uploaded before.
+    </div>
+
+    <label class="upload-box" for="fileInput">
+
+        <div class="folder">📁</div>
+
+        <div class="upload-title">
+            Select ZIP File
+        </div>
+
+        <div class="upload-info">
+            PDF, JPG and JPEG files are supported<br>
+            Maximum ZIP upload size: 100 MB
+        </div>
+
+        <div id="fileName">
+            No file selected
+        </div>
+
+    </label>
+
+    <input
+        type="file"
+        id="fileInput"
+        accept=".zip,application/zip"
+    >
+
+    <button id="uploadButton">
+        Check & Remove Duplicates
+    </button>
+
+    <div class="progress" id="progress">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="status" id="status"></div>
+
+    <div class="database">
+
+        <div class="database-title">
+            Total unique files stored in database
+        </div>
+
+        <div class="database-count" id="databaseCount">
+            Loading...
+        </div>
+
+    </div>
+
+    <div class="footer">
+        Duplicate checking uses SHA-256 file fingerprints.<br>
+        Previously uploaded files are remembered permanently
+        while the server's persistent storage is maintained.
+    </div>
+
 </div>
 
-<label class="upload-box" for="fileInput">
-
-    <div class="folder">📁</div>
-
-    <div class="upload-title">
-        Select ZIP File
-    </div>
-
-    <div class="upload-info">
-        PDF, JPG and JPEG files are supported<br>
-        Maximum ZIP upload size: 100 MB
-    </div>
-
-    <div id="fileName">
-        No file selected
-    </div>
-
-</label>
-
-<input
-    type="file"
-    id="fileInput"
-    accept=".zip,application/zip"
->
-
-<button id="uploadButton">
-    Check & Remove Duplicates
-</button>
-
-<div class="progress" id="progress">
-    <div class="progress-bar" id="progressBar"></div>
-</div>
-
-<div class="status" id="status"></div>
-
-<div class="database">
-
-    <div class="database-title">
-        Total unique files stored in database
-    </div>
-
-    <div class="database-count" id="databaseCount">
-        Loading...
-    </div>
-
-</div>
-
-<div class="footer">
-    Duplicate checking uses SHA-256 file fingerprints.<br>
-    Previously uploaded files are remembered permanently
-    while the server's persistent storage is maintained.
-</div>
-
-</div><script>
+<script>
 
 const API_URL = "https://zip-4ayu.onrender.com";
+
+const MAX_SIZE = 100 * 1024 * 1024;
 
 const fileInput = document.getElementById("fileInput");
 const fileName = document.getElementById("fileName");
@@ -235,9 +251,21 @@ const databaseCount = document.getElementById("databaseCount");
 const progress = document.getElementById("progress");
 const progressBar = document.getElementById("progressBar");
 
-const MAX_SIZE = 100 * 1024 * 1024;
-
 let selectedFile = null;
+
+function showStatus(message, type) {
+    statusBox.className = "status " + type;
+    statusBox.textContent = message;
+}
+
+function clearStatus() {
+    statusBox.className = "status";
+    statusBox.textContent = "";
+}
+
+// ==========================================
+// FILE SELECTION
+// ==========================================
 
 fileInput.addEventListener("change", () => {
 
@@ -263,7 +291,7 @@ fileInput.addEventListener("change", () => {
     if (selectedFile.size > MAX_SIZE) {
 
         showStatus(
-            "ZIP file exceeds the 100 MB upload limit.",
+            "ZIP file must be 100 MB or smaller.",
             "error"
         );
 
@@ -279,26 +307,17 @@ fileInput.addEventListener("change", () => {
 
 });
 
-function showStatus(message, type) {
-
-    statusBox.className = "status " + type;
-    statusBox.textContent = message;
-
-}
-
-function clearStatus() {
-
-    statusBox.className = "status";
-    statusBox.textContent = "";
-
-}
+// ==========================================
+// DATABASE STATUS
+// ==========================================
 
 async function loadDatabaseStatus() {
 
     try {
 
         const response = await fetch(
-            API_URL + "/api/status"
+            API_URL + "/api/status",
+            { cache: "no-store" }
         );
 
         if (!response.ok) {
@@ -318,6 +337,10 @@ async function loadDatabaseStatus() {
 
 }
 
+// ==========================================
+// ZIP UPLOAD
+// ==========================================
+
 uploadButton.addEventListener("click", async () => {
 
     if (!selectedFile) {
@@ -333,7 +356,7 @@ uploadButton.addEventListener("click", async () => {
     if (selectedFile.size > MAX_SIZE) {
 
         showStatus(
-            "ZIP file exceeds 100 MB.",
+            "ZIP file must be 100 MB or smaller.",
             "error"
         );
 
@@ -348,7 +371,7 @@ uploadButton.addEventListener("click", async () => {
     uploadButton.textContent = "Processing...";
 
     progress.style.display = "block";
-    progressBar.style.width = "15%";
+    progressBar.style.width = "10%";
 
     showStatus(
         "Uploading and checking your ZIP file. Please wait...",
@@ -365,7 +388,7 @@ uploadButton.addEventListener("click", async () => {
             }
         );
 
-        progressBar.style.width = "80%";
+        progressBar.style.width = "75%";
 
         const contentType =
             response.headers.get("content-type") || "";
@@ -411,6 +434,8 @@ uploadButton.addEventListener("click", async () => {
         const databaseTotal =
             response.headers.get("X-Database-Total");
 
+        progressBar.style.width = "90%";
+
         const downloadUrl = URL.createObjectURL(blob);
 
         const link = document.createElement("a");
@@ -421,7 +446,6 @@ uploadButton.addEventListener("click", async () => {
         document.body.appendChild(link);
 
         link.click();
-
         link.remove();
 
         setTimeout(() => {
@@ -476,7 +500,10 @@ uploadButton.addEventListener("click", async () => {
 
 });
 
+// Initial database count
 loadDatabaseStatus();
 
-</script></body>
+</script>
+
+</body>
 </html>
