@@ -2,13 +2,12 @@
   "name": "permanent-zip-duplicate-checker",
   "version": "1.0.0",
   "private": true,
-  "description": "Permanent SHA-256 duplicate checker for PDF and JPG files inside ZIP uploads.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "engines": {
-    "node": "22.x"
+    "node": ">=20"
   },
   "dependencies": {
     "archiver": "^7.0.1",
