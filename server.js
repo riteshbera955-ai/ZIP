@@ -24,8 +24,8 @@ const MAX_EXPANDED_SIZE = 300 * 1024 * 1024;
 const MAX_ENTRIES = 5000;
 
 const ALLOWED_ORIGINS = [
-"https://zipchecker.netlify.app",
-"http://localhost:3000"
+    "https://zipchecker.netlify.app",
+    "http://localhost:3000"
 ];
 
 // ==========================================
@@ -34,39 +34,39 @@ const ALLOWED_ORIGINS = [
 
 app.use((req, res, next) => {
 
-const origin = req.headers.origin;
+    const origin = req.headers.origin;
 
-if (ALLOWED_ORIGINS.includes(origin)) {
+    if (ALLOWED_ORIGINS.includes(origin)) {
+
+        res.setHeader(
+            "Access-Control-Allow-Origin",
+            origin
+        );
+
+    }
+
+    res.setHeader("Vary", "Origin");
 
     res.setHeader(
-        "Access-Control-Allow-Origin",
-        origin
+        "Access-Control-Allow-Methods",
+        "GET, POST, OPTIONS"
     );
 
-}
+    res.setHeader(
+        "Access-Control-Allow-Headers",
+        "Content-Type"
+    );
 
-res.setHeader("Vary", "Origin");
+    res.setHeader(
+        "Access-Control-Expose-Headers",
+        "Content-Disposition, X-Unique-Files, X-Duplicate-Files, X-Database-Total"
+    );
 
-res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, OPTIONS"
-);
+    if (req.method === "OPTIONS") {
+        return res.sendStatus(204);
+    }
 
-res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type"
-);
-
-res.setHeader(
-    "Access-Control-Expose-Headers",
-    "Content-Disposition, X-Unique-Files, X-Duplicate-Files, X-Database-Total"
-);
-
-if (req.method === "OPTIONS") {
-    return res.sendStatus(204);
-}
-
-next();
+    next();
 
 });
 
@@ -76,15 +76,18 @@ next();
 
 try {
 
-fs.mkdirSync(DATA_DIR, {
-    recursive: true
-});
+    fs.mkdirSync(DATA_DIR, {
+        recursive: true
+    });
 
 } catch (error) {
 
-console.error("DATABASE DIRECTORY ERROR:", error);
+    console.error(
+        "DATABASE DIRECTORY ERROR:",
+        error
+    );
 
-process.exit(1);
+    process.exit(1);
 
 }
 
@@ -93,8 +96,8 @@ process.exit(1);
 // ==========================================
 
 const databasePath = path.join(
-DATA_DIR,
-"duplicates.sqlite3"
+    DATA_DIR,
+    "duplicates.sqlite3"
 );
 
 const db = new Database(databasePath);
@@ -106,7 +109,13 @@ db.pragma("busy_timeout = 10000");
 // DATABASE TABLE
 // ==========================================
 
-db.exec("CREATE TABLE IF NOT EXISTS file_fingerprints ( sha256 TEXT PRIMARY KEY, filename TEXT, first_seen TEXT DEFAULT CURRENT_TIMESTAMP );");
+db.exec(`
+    CREATE TABLE IF NOT EXISTS file_fingerprints (
+        sha256 TEXT PRIMARY KEY,
+        filename TEXT,
+        first_seen TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+`);
 
 // ==========================================
 // OLD DATABASE MIGRATION
@@ -114,81 +123,81 @@ db.exec("CREATE TABLE IF NOT EXISTS file_fingerprints ( sha256 TEXT PRIMARY KEY,
 
 function migrateOldDatabase() {
 
-const tables = db.prepare(`
-    SELECT name
-    FROM sqlite_master
-    WHERE type = 'table'
-`).all();
+    const tables = db.prepare(`
+        SELECT name
+        FROM sqlite_master
+        WHERE type = 'table'
+    `).all();
 
-const oldTableExists = tables.some(
-    table => table.name === "seen_files"
-);
-
-if (!oldTableExists) {
-
-    console.log(
-        "No previous seen_files table found."
+    const oldTableExists = tables.some(
+        table => table.name === "seen_files"
     );
 
-    return;
+    if (!oldTableExists) {
 
-}
+        console.log(
+            "No previous seen_files table found."
+        );
 
-const columns = db.pragma(
-    "table_info(seen_files)"
-);
-
-const hasHash = columns.some(
-    column => column.name === "sha256"
-);
-
-if (!hasHash) {
-
-    console.log(
-        "Old table has no sha256 column."
-    );
-
-    return;
-
-}
-
-const hasFilename = columns.some(
-    column => column.name === "filename"
-);
-
-const migration = db.transaction(() => {
-
-    if (hasFilename) {
-
-        db.exec(`
-            INSERT OR IGNORE INTO file_fingerprints
-            (sha256, filename)
-            SELECT sha256, filename
-            FROM seen_files
-            WHERE sha256 IS NOT NULL
-            AND sha256 != ''
-        `);
-
-    } else {
-
-        db.exec(`
-            INSERT OR IGNORE INTO file_fingerprints
-            (sha256)
-            SELECT sha256
-            FROM seen_files
-            WHERE sha256 IS NOT NULL
-            AND sha256 != ''
-        `);
+        return;
 
     }
 
-});
+    const columns = db.pragma(
+        "table_info(seen_files)"
+    );
 
-migration();
+    const hasHash = columns.some(
+        column => column.name === "sha256"
+    );
 
-console.log(
-    "Old database migration completed."
-);
+    if (!hasHash) {
+
+        console.log(
+            "Old table has no sha256 column."
+        );
+
+        return;
+
+    }
+
+    const hasFilename = columns.some(
+        column => column.name === "filename"
+    );
+
+    const migration = db.transaction(() => {
+
+        if (hasFilename) {
+
+            db.exec(`
+                INSERT OR IGNORE INTO file_fingerprints
+                (sha256, filename)
+                SELECT sha256, filename
+                FROM seen_files
+                WHERE sha256 IS NOT NULL
+                AND sha256 != ''
+            `);
+
+        } else {
+
+            db.exec(`
+                INSERT OR IGNORE INTO file_fingerprints
+                (sha256)
+                SELECT sha256
+                FROM seen_files
+                WHERE sha256 IS NOT NULL
+                AND sha256 != ''
+            `);
+
+        }
+
+    });
+
+    migration();
+
+    console.log(
+        "Old database migration completed."
+    );
 
 }
 
@@ -198,11 +207,23 @@ migrateOldDatabase();
 // DATABASE QUERIES
 // ==========================================
 
-const findHash = db.prepare("SELECT 1 FROM file_fingerprints WHERE sha256 = ? LIMIT 1");
+const findHash = db.prepare(`
+    SELECT 1
+    FROM file_fingerprints
+    WHERE sha256 = ?
+    LIMIT 1
+`);
 
-const insertHash = db.prepare("INSERT OR IGNORE INTO file_fingerprints (sha256, filename) VALUES (?, ?)");
+const insertHash = db.prepare(`
+    INSERT OR IGNORE INTO file_fingerprints
+    (sha256, filename)
+    VALUES (?, ?)
+`);
 
-const getTotalFiles = db.prepare("SELECT COUNT(*) AS total FROM file_fingerprints");
+const getTotalFiles = db.prepare(`
+    SELECT COUNT(*) AS total
+    FROM file_fingerprints
+`);
 
 // ==========================================
 // MULTER UPLOAD
@@ -210,30 +231,30 @@ const getTotalFiles = db.prepare("SELECT COUNT(*) AS total FROM file_fingerprint
 
 const upload = multer({
 
-storage: multer.memoryStorage(),
+    storage: multer.memoryStorage(),
 
-limits: {
-    fileSize: MAX_UPLOAD_SIZE,
-    files: 1
-},
+    limits: {
+        fileSize: MAX_UPLOAD_SIZE,
+        files: 1
+    },
 
-fileFilter: (req, file, callback) => {
+    fileFilter: (req, file, callback) => {
 
-    const extension = path.extname(
-        file.originalname
-    ).toLowerCase();
+        const extension = path.extname(
+            file.originalname
+        ).toLowerCase();
 
-    if (extension !== ".zip") {
+        if (extension !== ".zip") {
 
-        return callback(
-            new Error("Only ZIP files are allowed.")
-        );
+            return callback(
+                new Error("Only ZIP files are allowed.")
+            );
+
+        }
+
+        callback(null, true);
 
     }
-
-    callback(null, true);
-
-}
 
 });
 
@@ -243,13 +264,13 @@ fileFilter: (req, file, callback) => {
 
 app.get("/health", (req, res) => {
 
-res.json({
+    res.json({
 
-    status: "ok",
+        status: "ok",
 
-    service: "permanent-zip-duplicate-checker"
+        service: "permanent-zip-duplicate-checker"
 
-});
+    });
 
 });
 
@@ -259,31 +280,34 @@ res.json({
 
 app.get("/api/status", (req, res) => {
 
-try {
+    try {
 
-    const result = getTotalFiles.get();
+        const result = getTotalFiles.get();
 
-    res.json({
+        res.json({
 
-        status: "ok",
+            status: "ok",
 
-        totalUniqueFiles: result.total,
+            totalUniqueFiles: result.total,
 
-        database: "connected"
+            database: "connected"
 
-    });
+        });
 
-} catch (error) {
+    } catch (error) {
 
-    console.error("STATUS ERROR:", error);
+        console.error(
+            "STATUS ERROR:",
+            error
+        );
 
-    res.status(500).json({
+        res.status(500).json({
 
-        error: "Unable to read database."
+            error: "Unable to read database."
 
-    });
+        });
 
-}
+    }
 
 });
 
@@ -293,274 +317,272 @@ try {
 
 function processZip(buffer) {
 
-return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
 
-    const uniqueFiles = [];
-    const pendingHashes = new Map();
-    const currentHashes = new Set();
+        const uniqueFiles = [];
+        const pendingHashes = new Map();
+        const currentHashes = new Set();
 
-    let entryCount = 0;
-    let duplicateCount = 0;
-    let ignoredCount = 0;
-    let expandedSize = 0;
+        let entryCount = 0;
+        let duplicateCount = 0;
+        let ignoredCount = 0;
+        let expandedSize = 0;
 
-    let finished = false;
-    let zipfile = null;
+        let finished = false;
+        let zipfile = null;
 
-    function fail(error) {
+        function fail(error) {
 
-        if (finished) return;
+            if (finished) return;
 
-        finished = true;
+            finished = true;
 
-        if (zipfile) {
+            if (zipfile) {
 
-            try {
-                zipfile.close();
-            } catch (_) {}
+                try {
+                    zipfile.close();
+                } catch (_) {}
 
-        }
-
-        reject(error);
-
-    }
-
-    function complete() {
-
-        if (finished) return;
-
-        finished = true;
-
-        resolve({
-
-            uniqueFiles,
-            pendingHashes,
-
-            uniqueCount: uniqueFiles.length,
-            duplicateCount,
-            ignoredCount,
-            totalEntries: entryCount
-
-        });
-
-    }
-
-    function nextEntry() {
-
-        if (!finished && zipfile) {
-
-            zipfile.readEntry();
-
-        }
-
-    }
-
-    yauzl.fromBuffer(
-        buffer,
-        {
-            lazyEntries: true,
-            autoClose: true,
-            validateEntrySizes: true
-        },
-        (error, openedZip) => {
-
-            if (error) {
-                return fail(error);
             }
 
-            zipfile = openedZip;
+            reject(error);
 
-            zipfile.on("error", fail);
-            zipfile.on("end", complete);
+        }
 
-            zipfile.on("entry", entry => {
+        function complete() {
 
-                if (finished) return;
+            if (finished) return;
 
-                (async () => {
+            finished = true;
 
-                    entryCount++;
+            resolve({
 
-                    if (entryCount > MAX_ENTRIES) {
+                uniqueFiles,
+                pendingHashes,
 
-                        throw new Error(
-                            "ZIP contains more than 5000 entries."
-                        );
-
-                    }
-
-                    const filename =
-                        entry.fileName.replace(/\\/g, "/");
-
-                    if (filename.endsWith("/")) {
-
-                        return nextEntry();
-
-                    }
-
-                    const parts = filename.split("/");
-
-                    if (
-                        filename.startsWith("/") ||
-                        parts.includes("..") ||
-                        parts.includes("")
-                    ) {
-
-                        ignoredCount++;
-
-                        return nextEntry();
-
-                    }
-
-                    const extension =
-                        path.extname(filename).toLowerCase();
-
-                    if (
-                        ![
-                            ".pdf",
-                            ".jpg",
-                            ".jpeg"
-                        ].includes(extension)
-                    ) {
-
-                        ignoredCount++;
-
-                        return nextEntry();
-
-                    }
-
-                    if (
-                        entry.uncompressedSize > MAX_FILE_SIZE
-                    ) {
-
-                        throw new Error(
-                            "A file exceeds the 60 MB limit."
-                        );
-
-                    }
-
-                    expandedSize +=
-                        entry.uncompressedSize;
-
-                    if (
-                        expandedSize > MAX_EXPANDED_SIZE
-                    ) {
-
-                        throw new Error(
-                            "Expanded ZIP contents exceed 300 MB."
-                        );
-
-                    }
-
-                    const fileBuffer = await new Promise(
-                        (resolveRead, rejectRead) => {
-
-                            zipfile.openReadStream(
-                                entry,
-                                (streamError, stream) => {
-
-                                    if (streamError) {
-
-                                        return rejectRead(
-                                            streamError
-                                        );
-
-                                    }
-
-                                    const chunks = [];
-                                    let size = 0;
-
-                                    stream.on("data", chunk => {
-
-                                        size += chunk.length;
-
-                                        if (size > MAX_FILE_SIZE) {
-
-                                            stream.destroy(
-                                                new Error(
-                                                    "File size limit exceeded."
-                                                )
-                                            );
-
-                                            return;
-
-                                        }
-
-                                        chunks.push(chunk);
-
-                                    });
-
-                                    stream.on("error", rejectRead);
-
-                                    stream.on("end", () => {
-
-                                        resolveRead(
-                                            Buffer.concat(chunks)
-                                        );
-
-                                    });
-
-                                }
-                            );
-
-                        }
-                    );
-
-                    if (
-                        fileBuffer.length !==
-                        entry.uncompressedSize
-                    ) {
-
-                        throw new Error(
-                            "ZIP entry size validation failed."
-                        );
-
-                    }
-
-                    const hash = crypto
-                        .createHash("sha256")
-                        .update(fileBuffer)
-                        .digest("hex");
-
-                    // Check database and current ZIP.
-
-                    if (
-                        currentHashes.has(hash) ||
-                        findHash.get(hash)
-                    ) {
-
-                        duplicateCount++;
-
-                    } else {
-
-                        currentHashes.add(hash);
-
-                        pendingHashes.set(
-                            hash,
-                            path.basename(filename)
-                        );
-
-                        uniqueFiles.push({
-
-                            name: filename,
-                            buffer: fileBuffer
-
-                        });
-
-                    }
-
-                    nextEntry();
-
-                })().catch(fail);
+                uniqueCount: uniqueFiles.length,
+                duplicateCount,
+                ignoredCount,
+                totalEntries: entryCount
 
             });
 
-            zipfile.readEntry();
+        }
+
+        function nextEntry() {
+
+            if (!finished && zipfile) {
+
+                zipfile.readEntry();
+
+            }
 
         }
-    );
 
-});
+        yauzl.fromBuffer(
+            buffer,
+            {
+                lazyEntries: true,
+                autoClose: true,
+                validateEntrySizes: true
+            },
+            (error, openedZip) => {
+
+                if (error) {
+                    return fail(error);
+                }
+
+                zipfile = openedZip;
+
+                zipfile.on("error", fail);
+                zipfile.on("end", complete);
+
+                zipfile.on("entry", entry => {
+
+                    if (finished) return;
+
+                    (async () => {
+
+                        entryCount++;
+
+                        if (entryCount > MAX_ENTRIES) {
+
+                            throw new Error(
+                                "ZIP contains more than 5000 entries."
+                            );
+
+                        }
+
+                        const filename =
+                            entry.fileName.replace(/\\/g, "/");
+
+                        if (filename.endsWith("/")) {
+
+                            return nextEntry();
+
+                        }
+
+                        const parts = filename.split("/");
+
+                        if (
+                            filename.startsWith("/") ||
+                            parts.includes("..") ||
+                            parts.includes("")
+                        ) {
+
+                            ignoredCount++;
+
+                            return nextEntry();
+
+                        }
+
+                        const extension =
+                            path.extname(filename).toLowerCase();
+
+                        if (
+                            ![
+                                ".pdf",
+                                ".jpg",
+                                ".jpeg"
+                            ].includes(extension)
+                        ) {
+
+                            ignoredCount++;
+
+                            return nextEntry();
+
+                        }
+
+                        if (
+                            entry.uncompressedSize > MAX_FILE_SIZE
+                        ) {
+
+                            throw new Error(
+                                "A file exceeds the 60 MB limit."
+                            );
+
+                        }
+
+                        expandedSize +=
+                            entry.uncompressedSize;
+
+                        if (
+                            expandedSize > MAX_EXPANDED_SIZE
+                        ) {
+
+                            throw new Error(
+                                "Expanded ZIP contents exceed 300 MB."
+                            );
+
+                        }
+
+                        const fileBuffer = await new Promise(
+                            (resolveRead, rejectRead) => {
+
+                                zipfile.openReadStream(
+                                    entry,
+                                    (streamError, stream) => {
+
+                                        if (streamError) {
+
+                                            return rejectRead(
+                                                streamError
+                                            );
+
+                                        }
+
+                                        const chunks = [];
+                                        let size = 0;
+
+                                        stream.on("data", chunk => {
+
+                                            size += chunk.length;
+
+                                            if (size > MAX_FILE_SIZE) {
+
+                                                stream.destroy(
+                                                    new Error(
+                                                        "File size limit exceeded."
+                                                    )
+                                                );
+
+                                                return;
+
+                                            }
+
+                                            chunks.push(chunk);
+
+                                        });
+
+                                        stream.on("error", rejectRead);
+
+                                        stream.on("end", () => {
+
+                                            resolveRead(
+                                                Buffer.concat(chunks)
+                                            );
+
+                                        });
+
+                                    }
+                                );
+
+                            }
+                        );
+
+                        if (
+                            fileBuffer.length !==
+                            entry.uncompressedSize
+                        ) {
+
+                            throw new Error(
+                                "ZIP entry size validation failed."
+                            );
+
+                        }
+
+                        const hash = crypto
+                            .createHash("sha256")
+                            .update(fileBuffer)
+                            .digest("hex");
+
+                        if (
+                            currentHashes.has(hash) ||
+                            findHash.get(hash)
+                        ) {
+
+                            duplicateCount++;
+
+                        } else {
+
+                            currentHashes.add(hash);
+
+                            pendingHashes.set(
+                                hash,
+                                path.basename(filename)
+                            );
+
+                            uniqueFiles.push({
+
+                                name: filename,
+                                buffer: fileBuffer
+
+                            });
+
+                        }
+
+                        nextEntry();
+
+                    })().catch(fail);
+
+                });
+
+                zipfile.readEntry();
+
+            }
+        );
+
+    });
 
 }
 
@@ -572,11 +594,11 @@ let processingQueue = Promise.resolve();
 
 function enqueueProcessing(task) {
 
-const result = processingQueue.then(task);
+    const result = processingQueue.then(task);
 
-processingQueue = result.catch(() => {});
+    processingQueue = result.catch(() => {});
 
-return result;
+    return result;
 
 }
 
@@ -586,20 +608,20 @@ return result;
 
 const saveHashes = db.transaction((pendingHashes) => {
 
-let inserted = 0;
+    let inserted = 0;
 
-for (const [hash, filename] of pendingHashes) {
+    for (const [hash, filename] of pendingHashes) {
 
-    const insertResult = insertHash.run(
-        hash,
-        filename
-    );
+        const insertResult = insertHash.run(
+            hash,
+            filename
+        );
 
-    inserted += insertResult.changes;
+        inserted += insertResult.changes;
 
-}
+    }
 
-return inserted;
+    return inserted;
 
 });
 
@@ -608,176 +630,175 @@ return inserted;
 // ==========================================
 
 app.post(
-"/api/process",
-upload.single("zipFile"),
-async (req, res) => {
+    "/api/process",
+    upload.single("zipFile"),
+    async (req, res) => {
 
-    try {
+        try {
 
-        if (!req.file) {
+            if (!req.file) {
 
-            return res.status(400).json({
+                return res.status(400).json({
 
-                error: "Please upload a ZIP file."
+                    error: "Please upload a ZIP file."
 
-            });
+                });
 
-        }
+            }
 
-        await enqueueProcessing(async () => {
+            await enqueueProcessing(async () => {
 
-            console.log(
-                "Processing ZIP:",
-                req.file.originalname
-            );
+                console.log(
+                    "Processing ZIP:",
+                    req.file.originalname
+                );
 
-            const zipResult = await processZip(
-                req.file.buffer
-            );
+                const zipResult = await processZip(
+                    req.file.buffer
+                );
 
-            console.log(
-                "FILES READY TO SAVE:",
-                zipResult.pendingHashes.size
-            );
+                console.log(
+                    "FILES READY TO SAVE:",
+                    zipResult.pendingHashes.size
+                );
 
-            console.log(
-                "UNIQUE FILES:",
-                zipResult.uniqueCount
-            );
+                console.log(
+                    "UNIQUE FILES:",
+                    zipResult.uniqueCount
+                );
 
-            console.log(
-                "DUPLICATE FILES:",
-                zipResult.duplicateCount
-            );
+                console.log(
+                    "DUPLICATE FILES:",
+                    zipResult.duplicateCount
+                );
 
-            // Create output ZIP.
+                // Create output ZIP.
 
-            const outputBuffer = await new Promise(
-                (resolveArchive, rejectArchive) => {
+                const outputBuffer = await new Promise(
+                    (resolveArchive, rejectArchive) => {
 
-                    const archive = archiver("zip", {
+                        const archive = archiver("zip", {
 
-                        zlib: {
-                            level: 6
+                            zlib: {
+                                level: 6
+                            }
+
+                        });
+
+                        const chunks = [];
+
+                        archive.on("data", chunk => {
+
+                            chunks.push(chunk);
+
+                        });
+
+                        archive.on("error", rejectArchive);
+
+                        archive.on("end", () => {
+
+                            resolveArchive(
+                                Buffer.concat(chunks)
+                            );
+
+                        });
+
+                        for (
+                            const file of zipResult.uniqueFiles
+                        ) {
+
+                            archive.append(
+                                file.buffer,
+                                {
+                                    name: file.name
+                                }
+                            );
+
                         }
 
-                    });
-
-                    const chunks = [];
-
-                    archive.on("data", chunk => {
-
-                        chunks.push(chunk);
-
-                    });
-
-                    archive.on("error", rejectArchive);
-
-                    archive.on("end", () => {
-
-                        resolveArchive(
-                            Buffer.concat(chunks)
-                        );
-
-                    });
-
-                    for (
-                        const file of zipResult.uniqueFiles
-                    ) {
-
-                        archive.append(
-                            file.buffer,
-                            {
-                                name: file.name
-                            }
+                        archive.finalize().catch(
+                            rejectArchive
                         );
 
                     }
+                );
 
-                    archive.finalize().catch(
-                        rejectArchive
-                    );
+                // Save permanent hashes.
 
-                }
-            );
+                const savedCount = saveHashes(
+                    zipResult.pendingHashes
+                );
 
-            // Save permanent fingerprints.
+                const databaseTotal =
+                    getTotalFiles.get().total;
 
-            const savedCount = saveHashes(
-                zipResult.pendingHashes
-            );
+                console.log(
+                    "FILES SAVED TO DATABASE:",
+                    savedCount
+                );
 
-            const databaseTotal =
-                getTotalFiles.get().total;
+                console.log(
+                    "DATABASE TOTAL:",
+                    databaseTotal
+                );
 
-            console.log(
-                "FILES SAVED TO DATABASE:",
-                savedCount
-            );
+                // Send ZIP download.
 
-            console.log(
-                "DATABASE TOTAL:",
-                databaseTotal
-            );
+                res.setHeader(
+                    "Content-Type",
+                    "application/zip"
+                );
 
-            // Send ZIP download.
+                res.setHeader(
+                    "Content-Disposition",
+                    'attachment; filename="unique_files.zip"'
+                );
 
-            res.setHeader(
-                "Content-Type",
-                "application/zip"
-            );
+                res.setHeader(
+                    "X-Unique-Files",
+                    String(zipResult.uniqueCount)
+                );
 
-            res.setHeader(
-                "Content-Disposition",
-                'attachment; filename="unique_files.zip"'
-            );
+                res.setHeader(
+                    "X-Duplicate-Files",
+                    String(zipResult.duplicateCount)
+                );
 
-            res.setHeader(
-                "X-Unique-Files",
-                String(zipResult.uniqueCount)
-            );
+                res.setHeader(
+                    "X-Database-Total",
+                    String(databaseTotal)
+                );
 
-            res.setHeader(
-                "X-Duplicate-Files",
-                String(zipResult.duplicateCount)
-            );
+                res.send(outputBuffer);
 
-            res.setHeader(
-                "X-Database-Total",
-                String(databaseTotal)
-            );
-
-            res.send(outputBuffer);
-
-            console.log(
-                "ZIP PROCESSING COMPLETED."
-            );
-
-        });
-
-    } catch (error) {
-
-        console.error(
-            "PROCESSING ERROR:",
-            error
-        );
-
-        if (!res.headersSent) {
-
-            res.status(500).json({
-
-                error:
-                    error.message ||
-                    "ZIP processing failed."
+                console.log(
+                    "ZIP PROCESSING COMPLETED."
+                );
 
             });
+
+        } catch (error) {
+
+            console.error(
+                "PROCESSING ERROR:",
+                error
+            );
+
+            if (!res.headersSent) {
+
+                res.status(500).json({
+
+                    error:
+                        error.message ||
+                        "ZIP processing failed."
+
+                });
+
+            }
 
         }
 
     }
-
-}
-
 );
 
 // ==========================================
@@ -786,19 +807,19 @@ async (req, res) => {
 
 app.use((error, req, res, next) => {
 
-console.error("SERVER ERROR:", error);
+    console.error("SERVER ERROR:", error);
 
-if (res.headersSent) {
-    return next(error);
-}
+    if (res.headersSent) {
+        return next(error);
+    }
 
-res.status(400).json({
+    res.status(400).json({
 
-    error:
-        error.message ||
-        "Upload failed."
+        error:
+            error.message ||
+            "Upload failed."
 
-});
+    });
 
 });
 
@@ -808,22 +829,26 @@ res.status(400).json({
 
 app.listen(PORT, "0.0.0.0", () => {
 
-console.log(
-    "ZIP DUPLICATE CHECKER STARTED"
-);
+    console.log(
+        "ZIP DUPLICATE CHECKER STARTED"
+    );
 
-console.log("PORT:", PORT);
+    console.log("PORT:", PORT);
 
-console.log("DATABASE:", databasePath);
+    console.log("DATABASE:", databasePath);
 
-console.log(
-    "DATABASE TOTAL:",
-    getTotalFiles.get().total
-);
+    console.log(
+        "DATABASE TOTAL:",
+        getTotalFiles.get().total
+    );
 
-console.log(
-    "FRONTEND:",
-    ALLOWED_ORIGINS[0]
-);
+    console.log(
+        "MAX ZIP UPLOAD: 100 MB"
+    );
+
+    console.log(
+        "FRONTEND:",
+        ALLOWED_ORIGINS[0]
+    );
 
 });
