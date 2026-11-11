@@ -3,505 +3,614 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>ZIP Duplicate Checker</title>
 
 <style>
-* {
-    box-sizing: border-box;
+:root {
+  color-scheme: dark;
+  --bg: #0b1020;
+  --card: #121a2e;
+  --line: #26334f;
+  --muted: #9aa8c4;
+  --accent: #65e6bd;
 }
+
+* { box-sizing: border-box; }
 
 body {
-    margin: 0;
-    padding: 25px 15px;
-    min-height: 100vh;
-    background: #080f20;
-    color: white;
-    font-family: Arial, sans-serif;
-    display: flex;
-    justify-content: center;
+  margin: 0;
+  min-height: 100vh;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Arial, sans-serif;
+  color: #f4f7ff;
+  background: radial-gradient(circle at top, #182744 0, var(--bg) 55%);
 }
 
-.container {
-    width: 100%;
-    max-width: 650px;
-    background: #112035;
-    border: 1px solid #263c58;
-    border-radius: 28px;
-    padding: 35px 25px;
-    text-align: center;
-    height: fit-content;
+.wrap { width: min(760px, 100%); }
+
+.brand {
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+.logo {
+  width: 58px;
+  height: 58px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 18px;
+  color: #071421;
+  font-size: 27px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #65e6bd, #5b8cff);
 }
 
 h1 {
-    font-size: 36px;
-    margin: 0 0 22px;
+  font-size: clamp(25px, 5vw, 36px);
+  margin: 14px 0 8px;
 }
 
-.subtitle {
-    color: #a8bad2;
-    font-size: 19px;
-    line-height: 1.6;
-    margin-bottom: 40px;
+.sub {
+  color: var(--muted);
+  line-height: 1.6;
+  margin: auto;
+  max-width: 600px;
 }
 
-.upload-box {
-    border: 3px dashed #405b7c;
-    border-radius: 22px;
-    padding: 50px 15px;
-    cursor: pointer;
-    margin-bottom: 28px;
+.card {
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: #121a2eec;
+  box-shadow: 0 24px 70px #0005;
 }
 
-.folder {
-    font-size: 75px;
-    margin-bottom: 20px;
+.drop {
+  display: block;
+  padding: 32px 18px;
+  text-align: center;
+  cursor: pointer;
+  border: 2px dashed #425579;
+  border-radius: 17px;
+  background: #0c1426;
 }
 
-.upload-title {
-    font-size: 25px;
-    font-weight: bold;
-    margin-bottom: 20px;
+.drop.drag {
+  border-color: var(--accent);
+  background: #102a2b;
 }
 
-.upload-info {
-    color: #a8bad2;
-    font-size: 18px;
-    line-height: 1.8;
+.drop strong {
+  display: block;
+  margin: 10px 0 7px;
+  font-size: 18px;
 }
 
-#fileInput {
-    display: none;
+.drop span {
+  color: var(--muted);
+  font-size: 13px;
 }
 
-#fileName {
-    color: #08c9ff;
-    margin-top: 20px;
-    font-size: 18px;
-    overflow-wrap: anywhere;
+input[type=file] { display: none; }
+
+.file {
+  margin-top: 15px;
+  color: var(--accent);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
 }
 
 button {
-    width: 100%;
-    border: none;
-    border-radius: 15px;
-    padding: 22px 12px;
-    background: #0799dc;
-    color: white;
-    font-size: 21px;
-    font-weight: bold;
-    cursor: pointer;
+  width: 100%;
+  margin-top: 18px;
+  padding: 15px;
+  border: 0;
+  border-radius: 13px;
+  color: #071421;
+  background: var(--accent);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 button:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
+  opacity: .5;
+  cursor: not-allowed;
 }
 
 .status {
-    display: none;
-    padding: 20px;
-    margin-top: 25px;
-    border-radius: 13px;
-    font-size: 17px;
-    line-height: 1.6;
-    overflow-wrap: anywhere;
+  display: none;
+  margin-top: 18px;
+  padding: 15px;
+  border-radius: 13px;
+  background: #0b1425;
+  border: 1px solid var(--line);
+  line-height: 1.6;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
-.success {
-    display: block;
-    background: #103e32;
-    color: #91ffcf;
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 14px;
 }
 
-.error {
-    display: block;
-    background: #501b22;
-    color: #ffc2c2;
+.stat {
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #0b1425;
 }
+
+.stat b {
+  display: block;
+  color: var(--accent);
+  font-size: 22px;
+}
+
+.stat small { color: var(--muted); }
 
 .info {
-    display: block;
-    background: #183653;
-    color: #c8eaff;
-}
-
-.database {
-    margin-top: 35px;
-    background: #0d1b30;
-    border-radius: 18px;
-    padding: 25px 12px;
-}
-
-.database-title {
-    color: #a8bad2;
-    font-size: 18px;
-}
-
-.database-count {
-    color: #00c8ff;
-    font-size: 40px;
-    font-weight: bold;
-    margin-top: 12px;
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
 }
 
 .footer {
-    color: #879bb7;
-    font-size: 15px;
-    line-height: 1.8;
-    margin-top: 35px;
+  margin-top: 18px;
+  text-align: center;
+  color: #71809e;
+  font-size: 12px;
 }
 
-.progress {
-    display: none;
-    width: 100%;
-    height: 9px;
-    background: #263c58;
-    border-radius: 20px;
-    margin-top: 22px;
-    overflow: hidden;
+.divider {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 24px 0;
 }
 
-.progress-bar {
-    width: 0%;
-    height: 100%;
-    background: #00c8ff;
-    transition: width 0.3s;
+.section-title {
+  font-size: 18px;
+  margin: 0 0 12px;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-top: 10px;
+}
+
+@media(max-width:480px) {
+  .card { padding: 16px; }
 }
 </style>
 </head>
 
 <body>
 
-<div class="container">
+<main class="wrap">
 
-    <h1>📦 ZIP Duplicate Checker</h1>
+<header class="brand">
+  <div class="logo">Z</div>
+  <h1>ZIP Duplicate Checker</h1>
 
-    <div class="subtitle">
-        Upload your ZIP file and automatically remove
-        files that have already been uploaded before.
-    </div>
+  <p class="sub">
+    Compare PDF, JPG and JPEG files against your permanent duplicate history.
+    Upload one ZIP or process multiple ZIPs together.
+  </p>
+</header>
 
-    <label class="upload-box" for="fileInput">
+<section class="card">
 
-        <div class="folder">📁</div>
+<h2 class="section-title">Bulk ZIP Upload</h2>
 
-        <div class="upload-title">
-            Select ZIP File
-        </div>
+<form id="bulkForm">
 
-        <div class="upload-info">
-            PDF, JPG and JPEG files are supported<br>
-            Maximum ZIP upload size: 100 MB
-        </div>
+<label class="drop" id="dropArea" for="zipInput">
 
-        <div id="fileName">
-            No file selected
-        </div>
+  <div style="font-size:35px">📦</div>
 
-    </label>
+  <strong>Select up to 20 ZIP files</strong>
 
-    <input
-        type="file"
-        id="fileInput"
-        accept=".zip,application/zip"
-    >
+  <span>
+    Maximum 100 MB each · 200 MB combined · PDF/JPG/JPEG are checked
+  </span>
 
-    <button id="uploadButton">
-        Check & Remove Duplicates
-    </button>
+  <div class="file" id="fileName">
+    No ZIP files selected
+  </div>
 
-    <div class="progress" id="progress">
-        <div class="progress-bar" id="progressBar"></div>
-    </div>
+</label>
 
-    <div class="status" id="status"></div>
+<input
+  id="zipInput"
+  type="file"
+  accept=".zip,application/zip"
+  multiple
+>
 
-    <div class="database">
+<button id="submitBtn" type="submit" disabled>
+  Process ZIPs & Download BULK_RESULT.zip
+</button>
 
-        <div class="database-title">
-            Total unique files stored in database
-        </div>
+</form>
 
-        <div class="database-count" id="databaseCount">
-            Loading...
-        </div>
+<div class="hint">
+  Each ZIP is processed sequentially. The result ZIP contains a separate
+  unique-files ZIP for each input ZIP, plus a BULK_SUMMARY.json report.
+</div>
 
-    </div>
+<div class="status" id="statusBox"></div>
 
-    <div class="footer">
-        Duplicate checking uses SHA-256 file fingerprints.<br>
-        Previously uploaded files are remembered permanently
-        while the server's persistent storage is maintained.
-    </div>
+<div class="stats" id="statsBox" hidden>
+
+  <div class="stat">
+    <b id="zipCount">0</b>
+    <small>ZIPs processed</small>
+  </div>
+
+  <div class="stat">
+    <b id="total">0</b>
+    <small>PDF/JPG files checked</small>
+  </div>
+
+  <div class="stat">
+    <b id="dupes">0</b>
+    <small>Duplicates removed</small>
+  </div>
+
+  <div class="stat">
+    <b id="fresh">0</b>
+    <small>New unique files saved</small>
+  </div>
+
+  <div class="stat">
+    <b id="ignored">0</b>
+    <small>Other/ignored files</small>
+  </div>
+
+  <div class="stat">
+    <b id="dbCount">—</b>
+    <small>Permanent database records</small>
+  </div>
 
 </div>
 
+<hr class="divider">
+
+<h2 class="section-title">Permanent Database</h2>
+
+<div id="dbStatus" class="hint">
+  Checking database…
+</div>
+
+<button id="refreshBtn" type="button">
+  Refresh Database Count
+</button>
+
+<p class="info">
+
+<b>Duplicate rule:</b>
+SHA-256 checks exact file contents, not filenames.
+Renamed copies of the same PDF/JPG are detected.
+
+A visually identical PDF and JPG are not duplicates under exact-byte matching.
+
+New unique fingerprints are saved to the permanent SQLite database on Render's persistent disk.
+
+Other file types are ignored.
+
+Each ZIP allows up to 5,000 entries, 300 MB expanded supported content
+and 60 MB per individual file.
+
+</p>
+
+</section>
+
+<div class="footer">
+  Permanent history · SHA-256 matching · Bulk sequential processing
+</div>
+
+</main>
+
 <script>
 
-const API_URL = "https://zip-4ayu.onrender.com";
+const API = "https://zip-4ayu.onrender.com";
 
-const MAX_SIZE = 100 * 1024 * 1024;
-
-const fileInput = document.getElementById("fileInput");
+const input = document.getElementById("zipInput");
+const drop = document.getElementById("dropArea");
 const fileName = document.getElementById("fileName");
-const uploadButton = document.getElementById("uploadButton");
-const statusBox = document.getElementById("status");
-const databaseCount = document.getElementById("databaseCount");
-const progress = document.getElementById("progress");
-const progressBar = document.getElementById("progressBar");
+const button = document.getElementById("submitBtn");
+const statusBox = document.getElementById("statusBox");
+const statsBox = document.getElementById("statsBox");
 
-let selectedFile = null;
+const MAX_ONE = 100 * 1024 * 1024;
+const MAX_ALL = 200 * 1024 * 1024;
+const MAX_FILES = 20;
 
-function showStatus(message, type) {
-    statusBox.className = "status " + type;
-    statusBox.textContent = message;
+let selectedFiles = [];
+
+function showStatus(message, error = false) {
+
+  statusBox.style.display = "block";
+
+  statusBox.style.borderColor =
+    error ? "#a84c5b" : "#287c68";
+
+  statusBox.textContent = message;
 }
 
-function clearStatus() {
-    statusBox.className = "status";
-    statusBox.textContent = "";
-}
+function chooseFiles(files) {
 
-// ==========================================
-// FILE SELECTION
-// ==========================================
+  const list = Array.from(files || []);
 
-fileInput.addEventListener("change", () => {
+  if (!list.length) return;
 
-    selectedFile = fileInput.files[0] || null;
-
-    if (!selectedFile) {
-        fileName.textContent = "No file selected";
-        return;
-    }
-
-    fileName.textContent = selectedFile.name;
-
-    if (!selectedFile.name.toLowerCase().endsWith(".zip")) {
-
-        showStatus("Please select a ZIP file.", "error");
-
-        selectedFile = null;
-        fileInput.value = "";
-
-        return;
-    }
-
-    if (selectedFile.size > MAX_SIZE) {
-
-        showStatus(
-            "ZIP file must be 100 MB or smaller.",
-            "error"
-        );
-
-        selectedFile = null;
-        fileInput.value = "";
-
-        fileName.textContent = "No file selected";
-
-        return;
-    }
-
-    clearStatus();
-
-});
-
-// ==========================================
-// DATABASE STATUS
-// ==========================================
-
-async function loadDatabaseStatus() {
-
-    try {
-
-        const response = await fetch(
-            API_URL + "/api/status",
-            { cache: "no-store" }
-        );
-
-        if (!response.ok) {
-            throw new Error("Database unavailable");
-        }
-
-        const data = await response.json();
-
-        databaseCount.textContent =
-            Number(data.totalUniqueFiles).toLocaleString();
-
-    } catch (error) {
-
-        databaseCount.textContent = "Unavailable";
-
-    }
-
-}
-
-// ==========================================
-// ZIP UPLOAD
-// ==========================================
-
-uploadButton.addEventListener("click", async () => {
-
-    if (!selectedFile) {
-
-        showStatus(
-            "Please select a ZIP file first.",
-            "error"
-        );
-
-        return;
-    }
-
-    if (selectedFile.size > MAX_SIZE) {
-
-        showStatus(
-            "ZIP file must be 100 MB or smaller.",
-            "error"
-        );
-
-        return;
-    }
-
-    const formData = new FormData();
-
-    formData.append("zipFile", selectedFile);
-
-    uploadButton.disabled = true;
-    uploadButton.textContent = "Processing...";
-
-    progress.style.display = "block";
-    progressBar.style.width = "10%";
+  if (list.length > MAX_FILES) {
 
     showStatus(
-        "Uploading and checking your ZIP file. Please wait...",
-        "info"
+      "Maximum 20 ZIP files can be selected.",
+      true
     );
 
-    try {
+    return;
+  }
 
-        const response = await fetch(
-            API_URL + "/api/process",
-            {
-                method: "POST",
-                body: formData
-            }
-        );
+  if (list.some(f => !f.name.toLowerCase().endsWith(".zip"))) {
 
-        progressBar.style.width = "75%";
+    showStatus(
+      "Only .zip files are accepted.",
+      true
+    );
 
-        const contentType =
-            response.headers.get("content-type") || "";
+    return;
+  }
 
-        if (!response.ok) {
+  const tooBig = list.find(f => f.size > MAX_ONE);
 
-            let errorMessage = "Processing failed.";
+  if (tooBig) {
 
-            if (contentType.includes("application/json")) {
+    showStatus(
+      `${tooBig.name} is larger than 100 MB.`,
+      true
+    );
 
-                const errorData = await response.json();
+    return;
+  }
 
-                errorMessage =
-                    errorData.error || errorMessage;
+  const total = list.reduce((s, f) => s + f.size, 0);
 
-            } else {
+  if (total > MAX_ALL) {
 
-                errorMessage =
-                    await response.text() || errorMessage;
+    showStatus(
+      "Combined selected ZIP size is above 200 MB. Select fewer or smaller ZIPs.",
+      true
+    );
 
-            }
+    return;
+  }
 
-            throw new Error(errorMessage);
+  selectedFiles = list;
 
-        }
+  fileName.textContent =
+    list.map((f, i) =>
+      `${i + 1}. ${f.name} — ${(f.size / 1048576).toFixed(2)} MB`
+    ).join("\n") +
+    `\n\nTotal: ${(total / 1048576).toFixed(2)} MB / 200 MB`;
 
-        if (!contentType.includes("application/zip")) {
+  button.disabled = false;
 
-            throw new Error(
-                "Server returned an invalid response."
-            );
+  statsBox.hidden = true;
+  statusBox.style.display = "none";
+}
 
-        }
+input.addEventListener("change", () => {
+  chooseFiles(input.files);
+});
 
-        const blob = await response.blob();
+["dragenter", "dragover"].forEach(n => {
 
-        const uniqueCount =
-            response.headers.get("X-Unique-Files") || "0";
+  drop.addEventListener(n, e => {
 
-        const duplicateCount =
-            response.headers.get("X-Duplicate-Files") || "0";
+    e.preventDefault();
+    drop.classList.add("drag");
 
-        const databaseTotal =
-            response.headers.get("X-Database-Total");
-
-        progressBar.style.width = "90%";
-
-        const downloadUrl = URL.createObjectURL(blob);
-
-        const link = document.createElement("a");
-
-        link.href = downloadUrl;
-        link.download = "unique_files.zip";
-
-        document.body.appendChild(link);
-
-        link.click();
-        link.remove();
-
-        setTimeout(() => {
-            URL.revokeObjectURL(downloadUrl);
-        }, 60000);
-
-        progressBar.style.width = "100%";
-
-        showStatus(
-            "Completed! New files: " +
-            uniqueCount +
-            " | Duplicates removed: " +
-            duplicateCount,
-            "success"
-        );
-
-        if (databaseTotal !== null) {
-
-            databaseCount.textContent =
-                Number(databaseTotal).toLocaleString();
-
-        } else {
-
-            await loadDatabaseStatus();
-
-        }
-
-    } catch (error) {
-
-        showStatus(
-            "Processing failed: " + error.message,
-            "error"
-        );
-
-        await loadDatabaseStatus();
-
-    } finally {
-
-        uploadButton.disabled = false;
-
-        uploadButton.textContent =
-            "Check & Remove Duplicates";
-
-        setTimeout(() => {
-
-            progress.style.display = "none";
-            progressBar.style.width = "0%";
-
-        }, 1500);
-
-    }
+  });
 
 });
 
-// Initial database count
-loadDatabaseStatus();
+["dragleave", "drop"].forEach(n => {
+
+  drop.addEventListener(n, e => {
+
+    e.preventDefault();
+    drop.classList.remove("drag");
+
+  });
+
+});
+
+drop.addEventListener("drop", e => {
+  chooseFiles(e.dataTransfer.files);
+});
+
+async function refreshDatabase() {
+
+  const box = document.getElementById("dbStatus");
+
+  box.textContent = "Checking permanent database…";
+
+  try {
+
+    const r = await fetch(API + "/api/status");
+
+    if (!r.ok) {
+      throw new Error("HTTP " + r.status);
+    }
+
+    const d = await r.json();
+
+    const count = Number(d.storedUniqueFiles || 0);
+
+    box.textContent =
+      `Permanent database is online. Stored unique fingerprints: ${count.toLocaleString()}.`;
+
+    document.getElementById("dbCount").textContent =
+      count.toLocaleString();
+
+  } catch (e) {
+
+    box.textContent =
+      "Could not read database status. Backend may be starting or offline.";
+
+  }
+}
+
+document.getElementById("refreshBtn")
+  .addEventListener("click", refreshDatabase);
+
+refreshDatabase();
+
+function displayStats(s) {
+
+  document.getElementById("zipCount").textContent =
+    s.zipCount ?? 0;
+
+  document.getElementById("total").textContent =
+    s.totalFiles ?? 0;
+
+  document.getElementById("dupes").textContent =
+    s.duplicatesRemoved ?? 0;
+
+  document.getElementById("fresh").textContent =
+    s.newUniqueFiles ?? 0;
+
+  document.getElementById("ignored").textContent =
+    s.ignoredFiles ?? 0;
+
+  statsBox.hidden = false;
+}
+
+document.getElementById("bulkForm")
+.addEventListener("submit", async e => {
+
+  e.preventDefault();
+
+  if (!selectedFiles.length) return;
+
+  const fd = new FormData();
+
+  selectedFiles.forEach(f => {
+    fd.append("zipfiles", f);
+  });
+
+  button.disabled = true;
+
+  button.textContent = "Processing ZIPs… Please wait";
+
+  statsBox.hidden = true;
+
+  showStatus(
+    `Uploading ${selectedFiles.length} ZIP file(s). The server will process them one by one. Keep this page open.`
+  );
+
+  try {
+
+    const response = await fetch(
+      API + "/api/bulk-process",
+      {
+        method: "POST",
+        body: fd
+      }
+    );
+
+    const type =
+      response.headers.get("content-type") || "";
+
+    if (!response.ok || type.includes("application/json")) {
+
+      const data = await response.json();
+
+      if (data.stats) {
+        displayStats(data.stats);
+      }
+
+      throw new Error(
+        data.error ||
+        data.message ||
+        "Bulk processing failed."
+      );
+    }
+
+    const blob = await response.blob();
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = "BULK_RESULT.zip";
+
+    document.body.appendChild(a);
+
+    a.click();
+    a.remove();
+
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 30000);
+
+    const encoded =
+      response.headers.get("X-Bulk-Stats");
+
+    if (encoded) {
+
+      const stats = JSON.parse(atob(encoded));
+
+      displayStats(stats);
+
+      showStatus(
+        `Completed successfully!
+ZIPs processed: ${stats.zipCount}
+New unique files saved: ${stats.newUniqueFiles}
+Duplicates removed: ${stats.duplicatesRemoved}
+BULK_RESULT.zip downloaded.`
+      );
+
+    } else {
+
+      showStatus(
+        "Completed! BULK_RESULT.zip downloaded."
+      );
+
+    }
+
+    await refreshDatabase();
+
+  } catch (err) {
+
+    showStatus(err.message, true);
+
+    await refreshDatabase();
+
+  } finally {
+
+    button.disabled = selectedFiles.length === 0;
+
+    button.textContent =
+      "Process ZIPs & Download BULK_RESULT.zip";
+
+  }
+
+});
 
 </script>
 
